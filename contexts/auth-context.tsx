@@ -16,18 +16,18 @@ const MOCK_USERS = [
     id: '1',
     email: 'admin@inventoree.com',
     password: 'admin123',
-    name: 'Admin User',
+    name: 'Boss',
     role: 'admin' as const,
     createdAt: new Date().toISOString(),
   },
-  {
-    id: '2',
-    email: 'staff@inventoree.com',
-    password: 'staff123',
-    name: 'Staff User',
-    role: 'staff' as const,
-    createdAt: new Date().toISOString(),
-  },
+  // {
+  //   id: '2',
+  //   email: 'staff@inventoree.com',
+  //   password: 'staff123',
+  //   name: 'Staff User',
+  //   role: 'staff' as const,
+  //   createdAt: new Date().toISOString(),
+  // },
 ];
 
 export const [AuthProvider, useAuth] = createContainer(() => {
