@@ -80,6 +80,8 @@ export const [AuthProvider, useAuth] = createContainer(() => {
         name: mockUser.name,
         role: mockUser.role,
         createdAt: mockUser.createdAt,
+        bio: '',
+        profilePhoto: ''
       };
 
       const token = `mock_token_${Date.now()}`;
@@ -116,6 +118,8 @@ export const [AuthProvider, useAuth] = createContainer(() => {
         name: credentials.name,
         role: credentials.role || 'staff',
         createdAt: new Date().toISOString(),
+        bio: '',
+        profilePhoto: ''
       };
 
       const token = `mock_token_${Date.now()}`;
