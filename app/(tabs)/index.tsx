@@ -60,7 +60,7 @@ export default function DashboardScreen() {
     },
     {
       title: 'Inventory Value',
-      value: `$${totalValue.toLocaleString()}`,
+      value: `UGX${totalValue.toLocaleString()}`,
       icon: DollarSign,
       color: '#10b981',
       bgColor: '#ecfdf5',
@@ -108,21 +108,19 @@ export default function DashboardScreen() {
             <Text style={styles.alertDescription}>
               {lowStockProducts.length} product{lowStockProducts.length > 1 ? 's' : ''} running low on stock
             </Text>
-            <View style={styles.lowStockList}>
-              {lowStockProducts.slice(0, 3).map((product) => (
-                <View key={product.id} style={styles.lowStockItem}>
-                  <Text style={styles.productName}>{product.name}</Text>
-                  <Text style={styles.stockLevel}>
-                    {product.quantity} left (min: {product.minQuantity})
-                  </Text>
-                </View>
-              ))}
-              {lowStockProducts.length > 3 && (
-                <Text style={styles.moreItems}>
-                  +{lowStockProducts.length - 3} more items
-                </Text>
-              )}
-            </View>
+            <ScrollView style={styles.lowStockScroll} nestedScrollEnabled>
+              {lowStockProducts.map((product) => {
+                const isCritical = product.quantity <= product.minQuantity / 2;
+                return (
+                  <View key={product.id} style={[styles.lowStockItem, isCritical && styles.criticalItem]}>
+                    <Text style={styles.productName}>{product.name}</Text>
+                    <Text style={styles.stockLevel}>
+                      {product.quantity} left (min: {product.minQuantity})
+                    </Text>
+                  </View>
+                );
+              })}
+            </ScrollView>
           </Card>
         )}
 
@@ -130,7 +128,7 @@ export default function DashboardScreen() {
           <Text style={styles.cardTitle}>Sales Overview (Last 30 Days)</Text>
           <View style={styles.salesStats}>
             <View style={styles.salesStat}>
-              <Text style={styles.salesValue}>${salesAnalytics.totalRevenue.toLocaleString()}</Text>
+              <Text style={styles.salesValue}>UGX{salesAnalytics.totalRevenue.toLocaleString()}</Text>
               <Text style={styles.salesLabel}>Total Revenue</Text>
             </View>
             <View style={styles.salesStat}>
@@ -138,7 +136,7 @@ export default function DashboardScreen() {
               <Text style={styles.salesLabel}>Items Sold</Text>
             </View>
             <View style={styles.salesStat}>
-              <Text style={styles.salesValue}>${salesAnalytics.averageOrderValue.toFixed(2)}</Text>
+              <Text style={styles.salesValue}>UGX{salesAnalytics.averageOrderValue.toFixed(2)}</Text>
               <Text style={styles.salesLabel}>Avg Order Value</Text>
             </View>
           </View>
@@ -214,6 +212,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fffbeb',
     borderLeftWidth: 4,
     borderLeftColor: '#f59e0b',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   alertHeader: {
     flexDirection: 'row',
@@ -231,7 +231,9 @@ const styles = StyleSheet.create({
     color: '#92400e',
     marginBottom: 12,
   },
-  lowStockList: {
+  lowStockScroll: {
+    maxHeight: 180,
+    marginTop: 8,
     gap: 8,
   },
   lowStockItem: {
@@ -239,6 +241,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 4,
+  },
+  criticalItem: {
+    backgroundColor: '#fef2f2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   productName: {
     fontSize: 14,
@@ -249,13 +257,6 @@ const styles = StyleSheet.create({
   stockLevel: {
     fontSize: 12,
     color: '#a16207',
-  },
-  moreItems: {
-    fontSize: 12,
-    color: '#a16207',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 4,
   },
   salesCard: {
     marginHorizontal: 20,

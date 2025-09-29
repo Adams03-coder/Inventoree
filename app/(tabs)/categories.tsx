@@ -6,10 +6,22 @@ import { useInventory } from '../../contexts/inventory-context';
 import { useAuth } from '../../contexts/auth-context';
 import Card from '../../components/ui/Card';
 
+// Generate unique ID for new categories
+const generateCategoryId = () => `CAT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+
 export default function CategoriesScreen() {
-  const { categories, products, deleteCategory } = useInventory();
+  const { categories, products, deleteCategory, addCategory, updateCategory } = useInventory();
   const { hasPermission } = useAuth();
+
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null); // Track currently editing category
+
+  // new/edit category form state
+  const [categoryName, setCategoryName] = useState('');
+  const [categoryDescription, setCategoryDescription] = useState('');
+  // const [categoryColor, setCategoryColor] = useState('#2563eb');
+  const [categoryId, setCategoryId] = useState(''); // for displaying ID
 
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -40,13 +52,56 @@ export default function CategoriesScreen() {
       `Are you sure you want to delete "${categoryName}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteCategory(categoryId),
-        },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteCategory(categoryId) },
       ]
     );
+  };
+
+  const handleSaveCategory = () => {
+    if (!categoryName.trim() || !categoryDescription.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (editingCategory) {
+      // update existing
+      updateCategory(editingCategory.id, {
+        ...editingCategory,
+        name: categoryName,
+        description: categoryDescription,
+        // color: categoryColor,
+      });
+      Alert.alert('Success', 'Category updated successfully');
+    } else {
+      const newId = generateCategoryId();
+      addCategory({
+        id: newId,
+        name: categoryName,
+        description: categoryDescription,
+        // color: categoryColor,
+      });
+      Alert.alert('Success', `Category added successfully with ID: ${newId}`);
+    }
+
+    resetForm();
+  };
+
+  const handleEditCategory = (category: any) => {
+    setEditingCategory(category);
+    setCategoryName(category.name);
+    setCategoryDescription(category.description);
+    // setCategoryColor(category.color);
+    setCategoryId(category.id);
+    setShowAddForm(true);
+  };
+
+  const resetForm = () => {
+    setCategoryName('');
+    setCategoryDescription('');
+    // setCategoryColor('#2563eb');
+    setCategoryId('');
+    setEditingCategory(null);
+    setShowAddForm(false);
   };
 
   return (
@@ -68,16 +123,67 @@ export default function CategoriesScreen() {
           />
         </View>
         {hasPermission('admin') && (
-          <TouchableOpacity style={styles.addButton}>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => {
+              resetForm();
+              setShowAddForm(true);
+            }}
+          >
             <Plus size={20} color="#ffffff" />
           </TouchableOpacity>
         )}
       </View>
 
+      {showAddForm && hasPermission('admin') && (
+        <Card style={{ marginHorizontal: 20, marginBottom: 16, padding: 16 }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8 }}>
+            {editingCategory ? 'Edit Category' : 'Add New Category'}
+          </Text>
+
+          {editingCategory ? (
+            <Text style={{ marginBottom: 8, color: '#64748b' }}>ID: {categoryId}</Text>
+          ) : (
+            <Text style={{ marginBottom: 8, color: '#64748b' }}>
+              New ID will be generated automatically
+            </Text>
+          )}
+
+          <TextInput
+            placeholder="Category Name"
+            style={styles.input}
+            value={categoryName}
+            onChangeText={setCategoryName}
+          />
+          <TextInput
+            placeholder="Category Description"
+            style={styles.input}
+            value={categoryDescription}
+            onChangeText={setCategoryDescription}
+          />
+          {/* <TextInput
+            placeholder="Color (hex code, e.g., #2563eb)"
+            style={styles.input}
+            value={categoryColor}
+            onChangeText={setCategoryColor}
+          /> */}
+
+          <TouchableOpacity style={styles.submitButton} onPress={handleSaveCategory}>
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>
+              {editingCategory ? 'Save Changes' : 'Add Category'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.cancelButton} onPress={resetForm}>
+            <Text style={{ color: '#64748b' }}>Cancel</Text>
+          </TouchableOpacity>
+        </Card>
+      )}
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {filteredCategories.map((category) => {
           const productCount = getCategoryProductCount(category.id);
-          
+
           return (
             <Card key={category.id} style={styles.categoryCard}>
               <View style={styles.categoryHeader}>
@@ -97,12 +203,15 @@ export default function CategoriesScreen() {
 
               {hasPermission('admin') && (
                 <View style={styles.actionButtons}>
-                  <TouchableOpacity style={styles.editButton}>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => handleEditCategory(category)}
+                  >
                     <Edit size={16} color="#2563eb" />
                     <Text style={styles.editButtonText}>Edit</Text>
                   </TouchableOpacity>
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => handleDeleteCategory(category.id, category.name)}
                   >
@@ -134,155 +243,58 @@ export default function CategoriesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
-  header: {
-    padding: 20,
-    paddingBottom: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1e293b',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#64748b',
-    marginTop: 4,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    gap: 12,
-  },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: { padding: 20, paddingBottom: 10 },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#1e293b' },
+  subtitle: { fontSize: 16, color: '#64748b', marginTop: 4 },
+  searchContainer: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 20, gap: 12 },
   searchBox: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#ffffff', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderWidth: 1, borderColor: '#e2e8f0',
   },
-  searchInput: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
-    color: '#1e293b',
-  },
+  searchInput: { flex: 1, marginLeft: 12, fontSize: 16, color: '#1e293b' },
   addButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    width: 48,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#2563eb', borderRadius: 12,
+    width: 48, height: 48, justifyContent: 'center', alignItems: 'center',
   },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: 20,
+  input: {
+    borderWidth: 1, borderColor: '#e2e8f0',
+    borderRadius: 8, padding: 10, marginBottom: 10,
   },
-  categoryCard: {
-    marginBottom: 16,
+  submitButton: {
+    backgroundColor: '#2563eb', padding: 12,
+    borderRadius: 8, alignItems: 'center', marginBottom: 8,
   },
-  categoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+  cancelButton: {
+    padding: 12, borderRadius: 8, alignItems: 'center',
+    borderWidth: 1, borderColor: '#64748b',
   },
-  categoryInfo: {
-    flex: 1,
-  },
-  categoryTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  colorIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  categoryName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  categoryDescription: {
-    fontSize: 14,
-    color: '#64748b',
-    lineHeight: 20,
-    marginLeft: 28,
-  },
-  productCountBadge: {
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  productCountText: {
-    fontSize: 12,
-    color: '#2563eb',
-    fontWeight: '600',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  scrollView: { flex: 1, paddingHorizontal: 20 },
+  categoryCard: { marginBottom: 16 },
+  categoryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  categoryInfo: { flex: 1 },
+  categoryTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  colorIndicator: { width: 16, height: 16, borderRadius: 8, marginRight: 12 },
+  categoryName: { fontSize: 18, fontWeight: '600', color: '#1e293b' },
+  categoryDescription: { fontSize: 14, color: '#64748b', lineHeight: 20, marginLeft: 28 },
+  productCountBadge: { backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  productCountText: { fontSize: 12, color: '#2563eb', fontWeight: '600' },
+  actionButtons: { flexDirection: 'row', gap: 12 },
   editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    flex: 1,
-    justifyContent: 'center',
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#eff6ff', paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: 8, flex: 1, justifyContent: 'center',
   },
-  editButtonText: {
-    fontSize: 14,
-    color: '#2563eb',
-    fontWeight: '600',
-    marginLeft: 6,
-  },
+  editButtonText: { fontSize: 14, color: '#2563eb', fontWeight: '600', marginLeft: 6 },
   deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef2f2',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    flex: 1,
-    justifyContent: 'center',
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fef2f2', paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: 8, flex: 1, justifyContent: 'center',
   },
-  deleteButtonText: {
-    fontSize: 14,
-    color: '#ef4444',
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#64748b',
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#94a3b8',
-    textAlign: 'center',
-    marginTop: 8,
-  },
+  deleteButtonText: { fontSize: 14, color: '#ef4444', fontWeight: '600', marginLeft: 6 },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
+  emptyStateText: { fontSize: 16, color: '#64748b', textAlign: 'center', marginTop: 16 },
+  emptyStateSubtext: { fontSize: 14, color: '#94a3b8', textAlign: 'center', marginTop: 8 },
 });

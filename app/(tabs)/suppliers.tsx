@@ -5,79 +5,101 @@ import { Plus, Search, Edit, Trash2, Phone, Mail, MapPin, User } from 'lucide-re
 import { useInventory } from '../../contexts/inventory-context';
 import { useAuth } from '../../contexts/auth-context';
 import Card from '../../components/ui/Card';
-import { Picker } from '@react-native-picker/picker';
-
 
 export default function SuppliersScreen() {
-  const { suppliers, products, addSupplier, deleteSupplier } = useInventory();
+  const { suppliers, products, addSupplier, deleteSupplier, updateSupplier } = useInventory();
   const { hasPermission } = useAuth();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<any>(null); // track supplier being edited
 
-  // Add form states
-  const [newSupplierName, setNewSupplierName] = useState('');
-  const [newSupplierContact, setNewSupplierContact] = useState('');
-  const [newSupplierEmail, setNewSupplierEmail] = useState('');
-  const [newSupplierPhone, setNewSupplierPhone] = useState('');
-  const [newSupplierAddress, setNewSupplierAddress] = useState('');
+  // Form state
+  const [supplierName, setSupplierName] = useState('');
+  const [supplierContact, setSupplierContact] = useState('');
+  const [supplierEmail, setSupplierEmail] = useState('');
+  const [supplierPhone, setSupplierPhone] = useState('');
+  const [supplierAddress, setSupplierAddress] = useState('');
 
   const filteredSuppliers = suppliers.filter(supplier =>
     supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     supplier.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getSupplierProductCount = (supplierId: string) => {
-    return products.filter(product => product.supplierId === supplierId).length;
-  };
+  const getSupplierProductCount = (supplierId: string) =>
+    products.filter(product => product.supplierId === supplierId).length;
 
   const handleDeleteSupplier = (supplierId: string, supplierName: string) => {
     if (!hasPermission('admin')) {
       Alert.alert('Permission Denied', 'Only admins can delete suppliers');
       return;
     }
-
     const productCount = getSupplierProductCount(supplierId);
     if (productCount > 0) {
       Alert.alert(
         'Cannot Delete',
-        `This supplier has ${productCount} product(s) associated with it. Please reassign or remove those products first.`
+        `This supplier has ${productCount} product(s) associated with it. Reassign or remove them first.`
       );
       return;
     }
-
     Alert.alert(
       'Delete Supplier',
       `Are you sure you want to delete "${supplierName}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteSupplier(supplierId),
-        },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteSupplier(supplierId) },
       ]
     );
   };
 
-  const handleAddSupplier = async () => {
-    if (!newSupplierName || !newSupplierContact || !newSupplierEmail || !newSupplierPhone || !newSupplierAddress) {
+  const handleSaveSupplier = async () => {
+    if (!supplierName || !supplierContact || !supplierEmail || !supplierPhone || !supplierAddress) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    await addSupplier({
-      name: newSupplierName,
-      contactPerson: newSupplierContact,
-      email: newSupplierEmail,
-      phone: newSupplierPhone,
-      address: newSupplierAddress,
-    });
+    if (editingSupplier) {
+      // update supplier
+      await updateSupplier(editingSupplier.id, {
+        name: supplierName,
+        contactPerson: supplierContact,
+        email: supplierEmail,
+        phone: supplierPhone,
+        address: supplierAddress,
+      });
+      Alert.alert('Success', 'Supplier updated successfully');
+    } else {
+      // add new supplier
+      await addSupplier({
+        name: supplierName,
+        contactPerson: supplierContact,
+        email: supplierEmail,
+        phone: supplierPhone,
+        address: supplierAddress,
+      });
+      Alert.alert('Success', 'Supplier added successfully');
+    }
 
-    setNewSupplierName('');
-    setNewSupplierContact('');
-    setNewSupplierEmail('');
-    setNewSupplierPhone('');
-    setNewSupplierAddress('');
+    resetForm();
+  };
+
+  const handleEditSupplier = (supplier: any) => {
+    setEditingSupplier(supplier);
+    setSupplierName(supplier.name);
+    setSupplierContact(supplier.contactPerson);
+    setSupplierEmail(supplier.email);
+    setSupplierPhone(supplier.phone);
+    setSupplierAddress(supplier.address);
+    setShowAddForm(true);
+  };
+
+  const resetForm = () => {
+    setSupplierName('');
+    setSupplierContact('');
+    setSupplierEmail('');
+    setSupplierPhone('');
+    setSupplierAddress('');
+    setEditingSupplier(null);
     setShowAddForm(false);
   };
 
@@ -100,51 +122,62 @@ export default function SuppliersScreen() {
           />
         </View>
         {hasPermission('admin') && (
-          <TouchableOpacity style={styles.addButton} onPress={() => setShowAddForm(!showAddForm)}>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => {
+              resetForm();
+              setShowAddForm(true);
+            }}
+          >
             <Plus size={20} color="#ffffff" />
           </TouchableOpacity>
         )}
       </View>
 
-      {showAddForm && (
+      {showAddForm && hasPermission('admin') && (
         <Card style={{ marginHorizontal: 20, marginBottom: 16, padding: 16 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8 }}>Add New Supplier</Text>
+          <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8 }}>
+            {editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}
+          </Text>
 
           <TextInput
             placeholder="Supplier Name"
             style={styles.input}
-            value={newSupplierName}
-            onChangeText={setNewSupplierName}
+            value={supplierName}
+            onChangeText={setSupplierName}
           />
           <TextInput
             placeholder="Contact Person"
             style={styles.input}
-            value={newSupplierContact}
-            onChangeText={setNewSupplierContact}
+            value={supplierContact}
+            onChangeText={setSupplierContact}
           />
           <TextInput
             placeholder="Email"
             style={styles.input}
-            value={newSupplierEmail}
-            onChangeText={setNewSupplierEmail}
+            value={supplierEmail}
+            onChangeText={setSupplierEmail}
           />
           <TextInput
             placeholder="Phone"
             style={styles.input}
-            value={newSupplierPhone}
-            onChangeText={setNewSupplierPhone}
+            value={supplierPhone}
+            onChangeText={setSupplierPhone}
           />
           <TextInput
             placeholder="Address"
             style={styles.input}
-            value={newSupplierAddress}
-            onChangeText={setNewSupplierAddress}
+            value={supplierAddress}
+            onChangeText={setSupplierAddress}
           />
 
-          <TouchableOpacity style={styles.submitButton} onPress={handleAddSupplier}>
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>Add Supplier</Text>
+          <TouchableOpacity style={styles.submitButton} onPress={handleSaveSupplier}>
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>
+              {editingSupplier ? 'Save Changes' : 'Add Supplier'}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => setShowAddForm(false)}>
+
+          <TouchableOpacity style={styles.cancelButton} onPress={resetForm}>
             <Text style={{ color: '#64748b' }}>Cancel</Text>
           </TouchableOpacity>
         </Card>
@@ -170,17 +203,14 @@ export default function SuppliersScreen() {
                   <User size={16} color="#64748b" />
                   <Text style={styles.contactText}>{supplier.contactPerson}</Text>
                 </View>
-
                 <View style={styles.contactItem}>
                   <Mail size={16} color="#64748b" />
                   <Text style={styles.contactText}>{supplier.email}</Text>
                 </View>
-
                 <View style={styles.contactItem}>
                   <Phone size={16} color="#64748b" />
                   <Text style={styles.contactText}>{supplier.phone}</Text>
                 </View>
-
                 <View style={styles.contactItem}>
                   <MapPin size={16} color="#64748b" />
                   <Text style={styles.contactText}>{supplier.address}</Text>
@@ -189,12 +219,18 @@ export default function SuppliersScreen() {
 
               {hasPermission('admin') && (
                 <View style={styles.actionButtons}>
-                  <TouchableOpacity style={styles.editButton}>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => handleEditSupplier(supplier)}
+                  >
                     <Edit size={16} color="#2563eb" />
                     <Text style={styles.editButtonText}>Edit</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteSupplier(supplier.id, supplier.name)}>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteSupplier(supplier.id, supplier.name)}
+                  >
                     <Trash2 size={16} color="#ef4444" />
                     <Text style={styles.deleteButtonText}>Delete</Text>
                   </TouchableOpacity>

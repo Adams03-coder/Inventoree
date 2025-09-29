@@ -39,7 +39,7 @@ export default function LoginScreen() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.title}>Welcome to inventoree</Text>
+          <Text style={styles.title}>Welcome to Inventoree</Text>
           <Text style={styles.subtitle}>Sign in to manage your inventory</Text>
         </View>
 

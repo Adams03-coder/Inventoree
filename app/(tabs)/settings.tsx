@@ -55,7 +55,7 @@ export default function SettingsScreen() {
       title: 'Help & Support',
       description: 'Get help and contact support',
       icon: HelpCircle,
-      onPress: () => Alert.alert('Help & Support', 'For support, please contact: support../..inventoree.com'),
+      onPress: () => Alert.alert('Help & Support', 'For support, please contact: support@inventoree.com'),
     },
   ];
 

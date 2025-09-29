@@ -9,6 +9,9 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 
+// Format number as UGX
+const formatUGX = (amount: number) => `UGX ${amount.toLocaleString('en-UG')}`;
+
 export default function SalesScreen() {
   const { products, sales, recordSale } = useInventory();
   const { user, hasPermission } = useAuth();
@@ -103,8 +106,9 @@ export default function SalesScreen() {
         <Card style={styles.statCard}>
           <View style={styles.statIcon}>
             <DollarSign size={24} color="#10b981" />
+            {/* <ShillingSign/> */}
           </View>
-          <Text style={styles.statValue}>${todaysRevenue.toFixed(2)}</Text>
+          <Text style={styles.statValue}>{formatUGX(todaysRevenue)}</Text>
           <Text style={styles.statLabel}>Today's Revenue</Text>
         </Card>
       </View>
@@ -121,7 +125,7 @@ export default function SalesScreen() {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>Recent Sales</Text>
-        
+
         {sales.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>No sales recorded yet</Text>
@@ -133,12 +137,12 @@ export default function SalesScreen() {
               <Card key={sale.id} style={styles.saleCard}>
                 <View style={styles.saleHeader}>
                   <Text style={styles.productName}>{getProductName(sale.productId)}</Text>
-                  <Text style={styles.saleAmount}>${sale.totalAmount.toFixed(2)}</Text>
+                  <Text style={styles.saleAmount}>{formatUGX(sale.totalAmount)}</Text>
                 </View>
-                
+
                 <View style={styles.saleDetails}>
                   <Text style={styles.saleDetail}>
-                    Quantity: {sale.quantity} × ${sale.unitPrice.toFixed(2)}
+                    Quantity: {sale.quantity} × {formatUGX(sale.unitPrice)}
                   </Text>
                   {sale.customerName && (
                     <Text style={styles.saleDetail}>Customer: {sale.customerName}</Text>
@@ -178,7 +182,7 @@ export default function SalesScreen() {
                 >
                   <Text style={styles.productOptionName}>{product.name}</Text>
                   <Text style={styles.productOptionDetails}>
-                    ${product.price.toFixed(2)} • {product.quantity} available
+                    {formatUGX(product.price)} • {product.quantity} available
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -204,9 +208,7 @@ export default function SalesScreen() {
                 <Text style={styles.summaryTitle}>Sale Summary</Text>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Product:</Text>
-                  <Text style={styles.summaryValue}>
-                    {getProductName(selectedProduct)}
-                  </Text>
+                  <Text style={styles.summaryValue}>{getProductName(selectedProduct)}</Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Quantity:</Text>
@@ -215,13 +217,16 @@ export default function SalesScreen() {
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Unit Price:</Text>
                   <Text style={styles.summaryValue}>
-                    ${products.find((p: Product) => p.id === selectedProduct)?.price.toFixed(2)}
+                    {formatUGX(products.find((p) => p.id === selectedProduct)?.price || 0)}
                   </Text>
                 </View>
                 <View style={[styles.summaryRow, styles.totalRow]}>
                   <Text style={styles.totalLabel}>Total:</Text>
                   <Text style={styles.totalValue}>
-                    ${((products.find((p: Product) => p.id === selectedProduct)?.price || 0) * parseInt(quantity || '0')).toFixed(2)}
+                    {formatUGX(
+                      (products.find((p) => p.id === selectedProduct)?.price || 0) *
+                        parseInt(quantity || '0')
+                    )}
                   </Text>
                 </View>
               </Card>

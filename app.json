@@ -5,6 +5,21 @@
       "expo-router"
     ],
     "name": "StockFlow",
-    "slug": "StockFlow"
+    "slug": "StockFlow",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "beaf4ff4-dd88-47d2-8236-fb1cb970142c"
+      }
+    },
+    "android": {
+      "package": "com.adams03coder.StockFlow"
+    },
+    "ios": {
+      "bundleIdentifier": "com.adams03coder.StockFlow",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
   }
 }

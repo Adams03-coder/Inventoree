@@ -1,4 +1,7 @@
 export interface User {
+  [x: string]: string;
+  bio: string;
+  profilePhoto: string;
   id: string;
   email: string;
   name: string;

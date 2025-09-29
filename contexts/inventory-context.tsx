@@ -10,7 +10,6 @@ const STORAGE_KEYS = {
   STOCK_MOVEMENTS: 'inventoree_stock_movements',
 };
 
-// Create the context type
 interface InventoryContextType {
   products: Product[];
   categories: Category[];
@@ -38,10 +37,8 @@ interface InventoryContextType {
   };
 }
 
-// Create context
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
-// Provider component
 export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -85,7 +82,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  // --- CRUD functions (same as your previous code) ---
+  // --- CRUD functions ---
   const addProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newProduct: Product = {
       ...productData,
@@ -153,14 +150,30 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const recordSale = async (saleData: Omit<Sale, 'id' | 'createdAt'>) => {
     const newSale: Sale = { ...saleData, id: Date.now().toString(), createdAt: new Date().toISOString() };
-    setSales([...sales, newSale]);
-    await saveData(STORAGE_KEYS.SALES, [...sales, newSale]);
+    const updated = [...sales, newSale];
+    setSales(updated);
+    await saveData(STORAGE_KEYS.SALES, updated);
     return newSale;
   };
 
+  // --- Reporting/Analytics functions ---
   const getLowStockProducts = () => products.filter(p => p.quantity <= p.minQuantity);
-  const getTotalInventoryValue = () => products.reduce((t, p) => t + p.quantity * p.cost, 0);
-  const getSalesAnalytics = (days: number = 30) => ({ totalSales: sales.length, totalRevenue: 0, totalQuantitySold: 0, averageOrderValue: 0 });
+
+  const getTotalInventoryValue = () => products.reduce((total, p) => total + p.quantity * p.cost, 0);
+
+  const getSalesAnalytics = (days: number = 30) => {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const periodSales = sales.filter(s => new Date(s.createdAt) >= startDate);
+
+    const totalRevenue = periodSales.reduce((sum, s) => sum + s.totalAmount, 0);
+    const totalSales = periodSales.length;
+    const totalQuantitySold = periodSales.reduce((sum, s) => sum + s.quantity, 0);
+    const averageOrderValue = totalSales > 0 ? totalRevenue / totalSales : 0;
+
+    return { totalRevenue, totalSales, totalQuantitySold, averageOrderValue };
+  };
 
   return (
     <InventoryContext.Provider
@@ -191,7 +204,6 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 };
 
-// Hook to use the inventory context
 export const useInventory = () => {
   const context = useContext(InventoryContext);
   if (!context) throw new Error('useInventory must be used within InventoryProvider');
